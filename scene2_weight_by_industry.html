@@ -284,6 +284,36 @@
                 .attr("transform", `translate(${marginLeft},0)`)
                 .call(d3.axisLeft(y).tickSizeOuter(0));
 
+            // Add annotation box
+            const annotationWidth = 170;
+            const annotationHeight = 75;
+            svg.append("rect")
+                .attr("class", "annotation")
+                .attr("x", 750)
+                .attr("y", 220)
+                .attr("width", annotationWidth)
+                .attr("height", annotationHeight);
+
+            svg.append("text")
+                .attr("class", "annotation-text")
+                .attr("x", 760)
+                .attr("y", 240)
+                .text("Communication Services")
+
+            ;
+
+            svg.append("text")
+                .attr("class", "annotation-text")
+                .attr("x", 780)
+                .attr("y", 260)
+                .text("22 Companies")
+
+            svg.append("text")
+                .attr("class", "annotation-text")
+                .attr("x", 780)
+                .attr("y", 280)
+                .text(" Avg 323 Billions")
+
         }).catch(error => {
             console.error('Error loading or parsing data:', error);
         });
@@ -313,8 +343,8 @@
     <p style="text-align:center;"></p>
     <p> The number of company within each sector does not rank order by weight of sector.
         22 companies from communication service sector contribute to $7114 Billions market capitalization.
-        The average market capitalization of each company in the sector is $323 Billions, which is the highest among all sectors. 
-        Hover over individual bars to see the avg company marketcap.
+        The average market capitalization of each company in the sector is $323 Billions, which is the highest among all sectors.
+        Hover over individual bars to see the avg. company marketcap.
     </p>
 
 </div>
