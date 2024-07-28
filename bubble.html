@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Chart with Legend</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+        .bubble {
+            stroke: black;
+            stroke-width: 1px;
+        }
+        .label {
+            font: 10px sans-serif;
+            text-anchor: middle;
+            fill: white;
+        }
+        .legend {
+            font-family: sans-serif;
+            font-size: 12px;
+        }
+        .legend rect {
+            stroke-width: 2;
+        }
+    </style>
+</head>
+<body>
+<svg width="800" height="800"></svg>
+<script>
+    const width = 800;
+    const height = 800;
+
+    const svg = d3.select("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    d3.csv("spy500_companies.csv").then(data => {
+        data.forEach(d => {
+            d.marketcap = +d.marketcap; // Convert marketcap to number
+        });
+
+        // Filter data to include only companies with marketcap > 100 Billion
+        const filteredData = data.filter(d => d.marketcap > 100e9);
+
+        const sectors = Array.from(new Set(filteredData.map(d => d.sector)));
+
+        const colorScale = d3.scaleOrdinal()
+            .domain(sectors)
+            .range(d3.schemeTableau10);
+
+        const sizeScale = d3.scaleSqrt()
+            .domain([0, d3.max(filteredData, d => d.marketcap)])
+            .range([10, 50]);
+
+        const simulation = d3.forceSimulation(filteredData)
+            .force("x", d3.forceX(width / 2).strength(0.05))
+            .force("y", d3.forceY(height / 2).strength(0.05))
+            .force("charge", d3.forceManyBody().strength(-15))
+            .force("collide", d3.forceCollide(d => sizeScale(d.marketcap) + 2))
+            .stop();
+
+        for (let i = 0; i < 300; ++i) simulation.tick();
+
+        const node = svg.selectAll("g")
+            .data(filteredData)
+            .enter().append("g")
+            .attr("transform", d => `translate(${d.x},${d.y})`);
+
+        node.append("circle")
+            .attr("class", "bubble")
+            .attr("r", d => sizeScale(d.marketcap))
+            .attr("fill", d => colorScale(d.sector));
+
+        const text = node.append("text")
+            .attr("class", "label")
+            .attr("dy", ".3em");
+
+        text.append("tspan")
+            .attr("x", 0)
+            .attr("dy", "-.5em")
+            .text(d => d.company_name);
+
+        text.append("tspan")
+            .attr("x", 0)
+            .attr("dy", "1.2em")
+            .text(d => `${Math.round(d.marketcap / 1e9)}B`);
+
+
+        // Create legend
+        const legend = svg.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${width -150}, 15)`);
+
+        legend.selectAll("rect")
+            .data(sectors)
+            .enter().append("rect")
+            .attr("x", 0)
+            .attr("y", (d, i) => i * 20)
+            .attr("width", 18)
+            .attr("height", 18)
+            .attr("fill", d => colorScale(d));
+
+        legend.selectAll("text")
+            .data(sectors)
+            .enter().append("text")
+            .attr("x", 24)
+            .attr("y", (d, i) => i * 20 + 9)
+            .attr("dy", ".35em")
+            .text(d => d);
+
+        svg.append("text")
+            .attr("class", "chart-title") // Apply the CSS class
+            .attr("x", width / 2)
+            .attr("y", 15)
+            .text("Number of Company");
+    }).catch(error => {
+        console.error('Error loading or parsing data:', error);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SP500 industry weight</title>
+    <script src='https://d3js.org/d3.v7.min.js'></script>
+    <style>
+        .bar {
+            fill: steelblue;
+        }
+        .axis text {
+            font: 10px sans-serif;
+        }
+        .axis path, .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: auto;
+            height: auto;
+            padding: 8px;
+            font: 10px sans-serif;
+            background: lightgrey;
+            border: 1px solid #000;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .chart-title {
+            text-anchor: middle;
+            font: 12px sans-serif;
+
+        }
+        .annotation {
+            fill: white;
+            stroke: black;
+            stroke-width: 1px;
+        }
+        .annotation-text {
+            font: 12px sans-serif;
+            fill: black;
+        }
+
+        #buttonsDivId {
+            margin: auto;
+            position: relative;
+            text-align: center;
+        }
+
+        button {
+            /*background-color: #59b465be;*/
+            /*color: #252c25e3;*/
+            font-weight: 600;
+            outline: rgb(65, 143, 107);
+            cursor: pointer;
+            padding: 0.5%;
+            font-size: 14px;
+            border-radius: 5px;
+            width: 150px;
+        }
+
+
+    </style>
+    <script>
+        const barHeight = 25;
+        const marginTop = 30;
+        const marginRight = 0;
+        const marginBottom = 10;
+        const marginLeft = 120;
+        const width = 928;
+        const height = Math.ceil((11 + 0.1) * barHeight) + marginTop + marginBottom;
+
+        d3.csv("spy500_sector.csv").then(data => {
+            // Parse the data
+            data.forEach(d => {
+                d.company_number = +d.company_number;
+                d.marketcap = +d.marketcap;
+            });
+
+            // Create the scales.
+        const x = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.marketcap)])
+            .range([marginLeft, width - marginRight]);
+
+        const y = d3.scaleBand()
+            .domain(d3.sort(data, d => -d.marketcap).map(d => d.Sector))
+            .rangeRound([marginTop, height - marginBottom])
+            .padding(0.1);
+
+        // Create a value format.
+        // const format = x.tickFormat(20, "%");
+        const formatBillions = d => `${Math.round(d / 1e9)}`;
+        // const format = x.tickFormat(d3.format(".0b"));
+
+        // Create the SVG container.
+        const svg = d3.select("#chart_industry_weight").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("viewBox", [0, 0, width, height])
+            .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;");
+
+        // Append a rect for each letter.
+        svg.append("g")
+            .attr("fill", "steelblue")
+            .selectAll()
+            .data(data)
+            .join("rect")
+            .attr("x", x(0))
+            .attr("y", (d) => y(d.Sector))
+            .attr("width", (d) => x(d.marketcap) - x(0))
+            .attr("height", y.bandwidth());
+
+        // Append a label for each letter.
+        svg.append("g")
+            .attr("fill", "white")
+            .attr("text-anchor", "end")
+            .selectAll()
+            .data(data)
+            .join("text")
+            .attr("x", (d) => x(d.marketcap))
+            .attr("y", (d) => y(d.Sector) + y.bandwidth() / 2)
+            .attr("dy", "0.35em")
+            .attr("dx", -4)
+            .text((d) => `$${Math.round(d.marketcap / 1e9)}`)
+            // .call((text) => text.filter(d => x(d.marketcap) - x(0) < 20) // short bars
+            //     .attr("dx", +4)
+            //     .attr("fill", "black")
+            //     .attr("text-anchor", "start"));
+
+         // svg.append("text")
+         //        .attr("transform", "translate(" + (width/2) + " ," + marginTop + ")")
+         //        .style("text-anchor", "middle")
+         //        .text("Market Cap");
+
+        svg.append("text")
+                .attr("class", "chart-title") // Apply the CSS class
+                .attr("x", width / 2)
+                .attr("y", marginTop / 2)
+                .text("Market Cap ($Billions)");
+
+        // Create the axes.
+        // svg.append("g")
+        //     .attr("transform", `translate(0,${marginTop})`)
+        //     .call(d3.axisTop(x).ticks(width / 240),formatBillions)
+        //     .call(g => g.select(".domain").remove());
+
+        svg.append("g")
+            .attr("transform", `translate(${marginLeft},0)`)
+            .call(d3.axisLeft(y).tickSizeOuter(0));
+
+            // Add annotation box
+            const annotationWidth = 170;
+            const annotationHeight = 50;
+            svg.append("rect")
+                .attr("class", "annotation")
+                .attr("x", 750)
+                .attr("y", 100)
+                .attr("width", annotationWidth)
+                .attr("height", annotationHeight);
+
+            svg.append("text")
+                .attr("class", "annotation-text")
+                .attr("x", 755)
+                .attr("y", 120)
+                .text(" Technology Sector Weight ")
+                .attr("font-weight", "bold")
+            ;
+
+            svg.append("text")
+                .attr("class", "annotation-text")
+                .attr("x", 795)
+                .attr("y", 140)
+                .text("31%")
+
+        }).catch(error => {
+            console.error('Error loading or parsing data:', error);
+        });
+    </script>
+
+
+</head>
+<body>
+
+
+<div id='header'>
+    <h1 style="text-align:center"> S&P 500 - Market Capitalization by Sector</h1>
+</div>
+
+<div id='introDivId'>
+    <p style="text-align:center;"></p>
+    <p> A total of 11 sectors are covered in the S&P 500 index. But it's not equally weighted by each sector.
+        Technology sector has the highest weighting. It accounts for 31% of total market capitalization in S&P 500.
+        It means that when investing in a fund tracking S&P 500, you have a large exposure of technology sector.
+    </p>
+</div>
+
+
+<div id="chart_industry_weight"></div>
+
+<br>
+<div id='buttonsDivId'>
+    <button class="button" onclick="window.location.href='index.html'"> Previous </button>
+    <button class="button" onclick="window.location.href='scene2_number_by_industry.html'"> Next </button>
+</div>
+</body>
+</html>

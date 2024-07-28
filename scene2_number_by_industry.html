@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SP500 industry</title>
+    <script src='https://d3js.org/d3.v7.min.js'></script>
+    <style>
+        .bar {
+            fill: steelblue;
+        }
+        .axis text {
+            font: 10px sans-serif;
+        }
+        .axis path, .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: auto;
+            height: auto;
+            padding: 8px;
+            font: 10px sans-serif;
+            background: lightgrey;
+            border: 1px solid #000;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .chart-title {
+            text-anchor: middle;
+            font: 10px sans-serif;
+
+        }
+
+
+    </style>
+
+    <script>
+        const barHeight = 25;
+        const marginTop = 30;
+        const marginRight = 0;
+        const marginBottom = 10;
+        const marginLeft = 120;
+        const width = 928;
+        const height = Math.ceil((11 + 0.1) * barHeight) + marginTop + marginBottom;
+
+        d3.csv("spy500_sector.csv").then(data => {
+            // Parse the data
+            data.forEach(d => {
+                d.company_number = +d.company_number;
+                d.marketcap = +d.marketcap;
+            });
+
+            // Create the scales.
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.company_number)])
+                .range([marginLeft, width - marginRight]);
+
+            const y = d3.scaleBand()
+                .domain(d3.sort(data, d => -d.marketcap).map(d => d.Sector))
+                .rangeRound([marginTop, height - marginBottom])
+                .padding(0.1);
+
+            // Create a value format.
+            // const format = x.tickFormat(20, "%");
+            const formatBillions = d => `${Math.round(d / 1e9)}Billions`;
+            // const format = x.tickFormat(d3.format(".0b"));
+
+            // Create the SVG container.
+            const svg = d3.select("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("viewBox", [0, 0, width, height])
+                .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;");
+
+            // Append a rect for each letter.
+            svg.append("g")
+                .attr("fill", "steelblue")
+                .selectAll()
+                .data(data)
+                .join("rect")
+                .attr("x", x(0))
+                .attr("y", (d) => y(d.Sector))
+                .attr("width", (d) => x(d.company_number) - x(0))
+                .attr("height", y.bandwidth());
+
+            // Append a label for each letter.
+            svg.append("g")
+                .attr("fill", "white")
+                .attr("text-anchor", "end")
+                .selectAll()
+                .data(data)
+                .join("text")
+                .attr("x", (d) => x(d.company_number))
+                .attr("y", (d) => y(d.Sector) + y.bandwidth() / 2)
+                .attr("dy", "0.35em")
+                .attr("dx", -4)
+                .text((d) => `${d.company_number}`)
+                .call((text) => text.filter(d => x(d.company_number) - x(0) < 20) // short bars
+                    .attr("dx", +4)
+                    .attr("fill", "black")
+                    .attr("text-anchor", "start"));
+
+            // svg.append("text")
+            //     .attr("transform", "translate(" + (width/2) + " ," + marginTop + ")")
+            //     .style("text-anchor", "middle")
+            //     .text("Number of Company");
+
+            svg.append("text")
+                .attr("class", "chart-title") // Apply the CSS class
+                .attr("x", width / 2)
+                .attr("y", marginTop / 2)
+                .text("Number of Company");
+
+            // Create the axes.
+            // svg.append("g")
+            //     .attr("transform", `translate(0,${marginTop})`)
+            //     .call(d3.axisTop(x).ticks(width / 240),formatBillions)
+            //     .call(g => g.select(".domain").remove());
+
+            svg.append("g")
+                .attr("transform", `translate(${marginLeft},0)`)
+                .call(d3.axisLeft(y).tickSizeOuter(0));
+
+        }).catch(error => {
+            console.error('Error loading or parsing data:', error);
+        });
+    </script>
+</head>
+<body>
+<svg width="200" height="200"></svg>
+</body>
+</html>
