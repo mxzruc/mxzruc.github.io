@@ -33,6 +33,7 @@
         .chart-title {
             text-anchor: middle;
             font: 12px sans-serif;
+            font-weight: 600;
 
         }
         .annotation {
@@ -166,15 +167,122 @@
                 .attr("class", "annotation-text")
                 .attr("x", 755)
                 .attr("y", 120)
-                .text(" Technology Sector Weight ")
-                .attr("font-weight", "bold")
+                .text(" Weight of Technology Sector")
+
             ;
 
             svg.append("text")
                 .attr("class", "annotation-text")
-                .attr("x", 795)
+                .attr("x", 810)
                 .attr("y", 140)
                 .text("31%")
+
+        }).catch(error => {
+            console.error('Error loading or parsing data:', error);
+        });
+    </script>
+
+    <script>
+        // const barHeight = 25;
+        // const marginTop = 30;
+        // const marginRight = 0;
+        // const marginBottom = 10;
+        // const marginLeft = 120;
+        // const width = 928;
+        // const height = Math.ceil((11 + 0.1) * barHeight) + marginTop + marginBottom;
+
+        d3.csv("spy500_sector.csv").then(data => {
+            // Parse the data
+            data.forEach(d => {
+                d.company_number = +d.company_number;
+                d.marketcap = +d.marketcap;
+                d.avg_marketcap = +d.avg_marketcap;
+            });
+
+            // Create the scales.
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.company_number)])
+                .range([marginLeft, width - marginRight]);
+
+            const y = d3.scaleBand()
+                .domain(d3.sort(data, d => -d.marketcap).map(d => d.Sector))
+                .rangeRound([marginTop, height - marginBottom])
+                .padding(0.1);
+
+            // Create a value format.
+            // const format = x.tickFormat(20, "%");
+            const formatBillions = d => `${Math.round(d / 1e9)}Billions`;
+            // const format = x.tickFormat(d3.format(".0b"));
+
+            // Create the SVG container.
+            const svg = d3.select("#chart_n_company").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("viewBox", [0, 0, width, height])
+                .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;");
+
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("display", "none");
+            // Append a rect for each letter.
+            svg.append("g")
+                .attr("fill", "green")
+                .selectAll()
+                .data(data)
+                .join("rect")
+                .attr("x", x(0))
+                .attr("y", (d) => y(d.Sector))
+                .attr("width", (d) => x(d.company_number) - x(0))
+                .attr("height", y.bandwidth())
+                .on("mouseover", function(event, d) {
+                    tooltip.style("display", "block")
+                        .html(`Sector: ${d.Sector}<br>Number of Companies: ${d.company_number}<br> Avg Market Cap: ${formatBillions(d.avg_marketcap)}`);
+                })
+                .on("mousemove", function(event) {
+                    tooltip.style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function() {
+                    tooltip.style("display", "none");
+                });
+
+            // Append a label for each letter.
+            svg.append("g")
+                .attr("fill", "white")
+                .attr("text-anchor", "end")
+                .selectAll()
+                .data(data)
+                .join("text")
+                .attr("x", (d) => x(d.company_number))
+                .attr("y", (d) => y(d.Sector) + y.bandwidth() / 2)
+                .attr("dy", "0.35em")
+                .attr("dx", -4)
+                .text((d) => `${d.company_number}`)
+                .call((text) => text.filter(d => x(d.company_number) - x(0) < 20) // short bars
+                    .attr("dx", +4)
+                    .attr("fill", "black")
+                    .attr("text-anchor", "start"));
+
+            // svg.append("text")
+            //     .attr("transform", "translate(" + (width/2) + " ," + marginTop + ")")
+            //     .style("text-anchor", "middle")
+            //     .text("Number of Company");
+
+            svg.append("text")
+                .attr("class", "chart-title") // Apply the CSS class
+                .attr("x", width / 2)
+                .attr("y", marginTop / 2)
+                .text("Number of Company");
+
+            // Create the axes.
+            // svg.append("g")
+            //     .attr("transform", `translate(0,${marginTop})`)
+            //     .call(d3.axisTop(x).ticks(width / 240),formatBillions)
+            //     .call(g => g.select(".domain").remove());
+
+            svg.append("g")
+                .attr("transform", `translate(${marginLeft},0)`)
+                .call(d3.axisLeft(y).tickSizeOuter(0));
 
         }).catch(error => {
             console.error('Error loading or parsing data:', error);
@@ -196,15 +304,26 @@
         Technology sector has the highest weighting. It accounts for 31% of total market capitalization in S&P 500.
         It means that when investing in a fund tracking S&P 500, you have a large exposure of technology sector.
     </p>
+
 </div>
 
-
 <div id="chart_industry_weight"></div>
+
+<div>
+    <p style="text-align:center;"></p>
+    <p> The number of company within each sector does not rank order by weight of sector.
+        22 companies from communication service sector contribute to $7114 Billions market capitalization.
+        The average market capitalization of each company in the sector is $323 Billions, which is the highest among all sectors.
+    </p>
+
+</div>
+
+<div id="chart_n_company"></div>
 
 <br>
 <div id='buttonsDivId'>
     <button class="button" onclick="window.location.href='index.html'"> Previous </button>
-    <button class="button" onclick="window.location.href='scene2_number_by_industry.html'"> Next </button>
+    <button class="button" onclick="window.location.href='scene3_100B_company.html'"> Next </button>
 </div>
 </body>
 </html>

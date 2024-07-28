@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Horizontal Bar Chart with Dropdown Filter</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .bar {
+      fill: steelblue;
+    }
+    .axis text {
+      font: 10px sans-serif;
+    }
+    .axis path, .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .tooltip {
+      position: absolute;
+      text-align: center;
+      width: auto;
+      height: auto;
+      padding: 8px;
+      font: 10px sans-serif;
+      background: lightgrey;
+      border: 1px solid #000;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .chart-title {
+      text-anchor: middle;
+      font: 10px sans-serif;
+      font-weight: 600;
+
+    }
+    #buttonsDivId {
+      margin: auto;
+      position: relative;
+      text-align: center;
+    }
+
+    button {
+      /*background-color: #59b465be;*/
+      /*color: #252c25e3;*/
+      font-weight: 600;
+      outline: rgb(65, 143, 107);
+      cursor: pointer;
+      padding: 0.5%;
+      font-size: 14px;
+      border-radius: 5px;
+      width: 150px;
+    }
+
+  </style>
+</head>
+<body>
+
+
+<div id='header'>
+  <h1 style="text-align:center"> Top Companies by Sector in S&P 500  </h1>
+</div>
+
+<div>
+  <p style="text-align:center;"></p>
+  <p> The following chart shows the top companies by sector in S&P 500.
+    It shows the sector is usually dominated by a few companies.
+    For example, communication service sector is basically dominated by Google (Class A and Class C) and Meta.
+  </p>
+  <p>  Use the drop-down to select sector and hover over individual bars to see the company name/marketcap. </p>
+
+</div>
+
+<div>
+  <label for="sectorDropdown" style="font-weight: 600" >Select Sector:</label>
+  <select id="sectorDropdown"></select>
+</div>
+
+<div>
+<svg width="960" height="600"></svg>
+</div>
+
+
+<div id='buttonsDivId'>
+  <button class="button" onclick="window.location.href='scene3_100B_company.html'"> Previous </button>
+  <button class="button" onclick="window.location.href='index.html'"> homepage </button>
+</div>
+
+<script>
+  const width = 960;
+  const height = 600;
+  const margin = {top: 20, right: 30, bottom: 40, left: 150}; // Increased left margin for company names
+
+  const svg = d3.select("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+  svg.append("text")
+          .attr("class", "chart-title") // Apply the CSS class
+          .attr("x", width / 2)
+          .attr("y", margin.top / 2)
+          .text("Market Cap");
+
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+
+  const g = svg.append("g")
+          .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const x = d3.scaleLinear().rangeRound([0, chartWidth]);
+  const y = d3.scaleBand().rangeRound([0, chartHeight]).padding(0.1);
+
+  const xAxis = g.append("g")
+          .attr("class", "x-axis")
+          .attr("transform", `translate(0,${chartHeight})`);
+
+  const yAxis = g.append("g")
+          .attr("class", "y-axis");
+  // Tooltip setup
+  const tooltip = d3.select("body").append("div")
+          .attr("class", "tooltip")
+          .style("display", "none");
+  // Format function for market cap
+  const formatMarketCap = d3.format(".2s");
+
+  d3.csv("spy500_companies.csv").then(data => {
+    data.forEach(d => {
+      d.marketcap = +d.marketcap;
+    });
+
+    const sectors = Array.from(new Set(data.map(d => d.sector)));
+    const sectorDropdown = d3.select("#sectorDropdown");
+
+    sectors.forEach(sector => {
+      sectorDropdown.append("option")
+              .attr("value", sector)
+              .text(sector);
+    });
+
+    // Set default value to "Technology"
+    sectorDropdown.property("value", "Communication Services");
+
+    function updateChart(selectedSector) {
+      const filteredData = selectedSector ? data.filter(d => d.sector === selectedSector) : data;
+
+      x.domain([0, d3.max(filteredData, d => d.marketcap)]);
+      y.domain(filteredData.map(d => d.company_name));
+
+      const fontSize = Math.min(10, chartHeight / filteredData.length);
+
+      xAxis.transition()
+              .call(d3.axisBottom(x).ticks(10, "s"));
+
+      yAxis.transition()
+              .call(d3.axisLeft(y).tickSize(0).tickPadding(10))
+              .selectAll("text")
+              .style("font-size", `${fontSize}px`);
+
+      const bars = g.selectAll(".bar")
+              .data(filteredData, d => d.company_name);
+
+      bars.enter()
+              .append("rect")
+              .attr("class", "bar")
+              .attr("x", x(0))
+              .attr("y", d => y(d.company_name))
+              .attr("width", d => x(d.marketcap))
+              .attr("height", y.bandwidth())
+              .on("mouseover", function(event, d) {
+                tooltip.style("display", "block")
+                        .html(`Company: ${d.Shortname}<br>Market Cap: ${formatMarketCap(d.marketcap)}`);
+              })
+              .on("mousemove", function(event) {
+                tooltip.style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+              })
+              .on("mouseout", function() {
+                tooltip.style("display", "none");
+              })
+              .merge(bars)
+              .transition()
+              .duration(2000)
+              .attr("x", x(0))
+              .attr("y", d => y(d.company_name))
+              .attr("width", d => x(d.marketcap))
+              .attr("height", y.bandwidth());
+
+
+      bars.exit().remove();
+    }
+
+    sectorDropdown.on("change", function() {
+      const selectedSector = d3.select(this).property("value");
+      updateChart(selectedSector);
+    });
+
+    // Initialize the chart with "Technology" selected
+    updateChart("Communication Services");
+  }).catch(error => {
+    console.error('Error loading or parsing data:', error);
+  });
+</script>
+</body>
+</html>
