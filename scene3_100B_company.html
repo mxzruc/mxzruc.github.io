@@ -172,6 +172,29 @@
             .attr("x", width / 2)
             .attr("y", 15)
             .text("Market Cap by Company");
+
+        // Add annotation box
+        const annotationWidth = 170;
+        const annotationHeight = 50;
+        svg.append("rect")
+            .attr("class", "annotation")
+            .attr("x", 10)
+            .attr("y", 20)
+            .attr("width", annotationWidth)
+            .attr("height", annotationHeight);
+
+        svg.append("text")
+            .attr("class", "annotation-text")
+            .attr("x", 15)
+            .attr("y", 40)
+            .text(" Weight of Top 9 Companies")
+
+        svg.append("text")
+            .attr("class", "annotation-text")
+            .attr("x", 70)
+            .attr("y", 60)
+            .text("35.8%")
+
     }).catch(error => {
         console.error('Error loading or parsing data:', error);
     });
